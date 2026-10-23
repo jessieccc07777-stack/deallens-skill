@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DealLens — Interactive Investment Agreement Visualizer</title>
+<style>
+:root{
+  --orange:#E8713A; --orange-dk:#B8551F; --yellow:#F2B33D; --brown:#6B4A2F;
+  --bg:#FAF8F5; --card:#FFFFFF; --soft:#F0EEEB; --ink:#26221E; --muted:#8A857E;
+  --line:#E5E0D8; --good:#3E7C4F; --warn:#C0392B;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer}
+
+/* ---------- header ---------- */
+header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 28px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,var(--orange),var(--yellow));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;
+  letter-spacing:.5px;box-shadow:0 3px 8px rgba(232,113,58,.35)}
+.brand h1{font-size:19px;font-weight:800;color:var(--brown);letter-spacing:.3px}
+.brand p{font-size:12px;color:var(--muted)}
+.hdr-spacer{flex:1}
+.badge-demo{background:#FFF3E2;color:var(--orange-dk);border:1px solid #F5D9A8;font-size:11px;
+  font-weight:700;padding:5px 12px;border-radius:999px;letter-spacing:.6px;text-transform:uppercase}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;
+  padding:7px 14px;border-radius:9px;transition:.15s}
+.btn:hover{border-color:var(--orange);color:var(--orange)}
+.btn-primary{background:var(--orange);border-color:var(--orange);color:#fff;font-weight:600}
+.btn-primary:hover{background:var(--orange-dk);color:#fff}
+
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:8px;padding:16px 28px 0;flex-wrap:wrap}
+.tab{padding:9px 20px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  font-size:14px;font-weight:600;color:var(--muted);transition:.15s}
+.tab.active{background:var(--brown);color:#fff;border-color:var(--brown)}
+.tab:hover:not(.active){border-color:var(--orange);color:var(--orange)}
+
+/* ---------- layout ---------- */
+main{padding:18px 28px 90px;max-width:1560px;margin:0 auto}
+.panel{display:none}
+.panel.active{display:block}
+.grid{display:grid;gap:18px}
+.grid-sim{grid-template-columns:300px minmax(0,1fr) 330px}
+@media(max-width:1180px){.grid-sim{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;
+  box-shadow:0 1px 3px rgba(107,74,47,.06)}
+.card h3{font-size:14px;font-weight:800;color:var(--brown);text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h3::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--orange)}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+
+/* ---------- controls ---------- */
+.scn{border:1px solid var(--line);border-radius:11px;padding:13px 14px;margin-bottom:12px;transition:.15s}
+.scn.on{border-color:var(--orange);background:#FFF8F2}
+.scn-head{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13.5px}
+.scn-head input{accent-color:var(--orange);width:16px;height:16px;cursor:pointer}
+.scn-desc{font-size:12px;color:var(--muted);margin:6px 0 0 25px}
+.scn-body{margin:10px 0 0 25px;display:none}
+.scn.on .scn-body{display:block}
+.slider-row{font-size:12.5px;margin-top:8px}
+.slider-row label{display:flex;justify-content:space-between;color:var(--ink);font-weight:600;margin-bottom:4px}
+.slider-row output{color:var(--orange);font-weight:800}
+input[type=range]{width:100%;accent-color:var(--orange);cursor:pointer}
+
+/* ---------- cap table viz ---------- */
+.viz-wrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.donut-box{position:relative;width:250px;height:250px;flex:0 0 auto}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;pointer-events:none}
+.donut-center .v{font-size:21px;font-weight:800;color:var(--brown)}
+.donut-center .l{font-size:11px;color:var(--muted);max-width:130px}
+table.ct{width:100%;border-collapse:collapse;font-size:13.5px;flex:1;min-width:300px}
+table.ct th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);
+  padding:7px 8px;border-bottom:2px solid var(--soft)}
+table.ct td{padding:9px 8px;border-bottom:1px solid var(--soft)}
+table.ct tr:last-child td{border-bottom:none}
+.chip-dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.pct{font-weight:800;font-variant-numeric:tabular-nums}
+.delta{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.delta.up{color:var(--orange-dk)} .delta.down{color:var(--brown)} .delta.zero{color:var(--muted)}
+.bar-cell{min-width:110px}
+.bar-track{height:8px;border-radius:4px;background:var(--soft);overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .35s ease}
+
+/* ---------- impact cards ---------- */
+.impact{border-left:4px solid var(--orange);background:#FFFDF9;border:1px solid var(--line);
+  border-left:4px solid var(--orange);border-radius:11px;padding:14px 16px;margin-bottom:13px}
+.impact.warn{border-left-color:var(--warn)}
+.impact.neutral{border-left-color:var(--muted)}
+.impact h4{font-size:13.5px;font-weight:800;margin-bottom:6px}
+.impact p{font-size:12.5px;margin-bottom:6px}
+.impact .num{font-weight:800;color:var(--orange-dk)}
+.party-row{display:flex;flex-wrap:wrap;gap:6px;margin:7px 0}
+.pchip{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px}
+.pchip.rh{background:#FDEBDD;color:var(--orange-dk);border:1px solid #F3C9A8}
+.pchip.ob{background:#EFE4DA;color:var(--brown);border:1px solid #D8C4B0}
+.plist{margin:6px 0 0 16px;font-size:12.5px}
+.plist li{margin-bottom:3px}
+.big-cost{font-size:26px;font-weight:800;color:var(--warn);font-variant-numeric:tabular-nums}
+.cash-bar{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:8px;font-size:11px;font-weight:700;color:#fff}
+.cash-bar .seg{display:flex;align-items:center;justify-content:center;min-width:0;white-space:nowrap;overflow:hidden}
+.legend-inline{font-size:11px;color:var(--muted);margin-top:5px}
+
+/* ---------- clause map ---------- */
+.map-wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px}
+@media(max-width:1080px){.map-wrap{grid-template-columns:1fr}}
+svg.map{width:100%;height:auto;display:block;background:
+  radial-gradient(circle at 20% 15%,#FFF6EA 0,transparent 45%),var(--card)}
+.node-box{cursor:pointer;transition:.15s}
+.node-box rect{fill:#fff;stroke:var(--line);stroke-width:1.4;rx:10}
+.node-box:hover rect{stroke:var(--orange);stroke-width:2.2}
+.node-box.sel rect{stroke:var(--orange);stroke-width:2.6;fill:#FFF6EC}
+.node-box.dim{opacity:.28}
+.node-box text{fill:var(--ink);font-size:12.5px;font-weight:700;pointer-events:none}
+.node-box .sub{fill:var(--muted);font-size:10px;font-weight:500}
+.edge{stroke:#CBBFAE;stroke-width:1.6;fill:none}
+.edge.hot{stroke:var(--orange);stroke-width:2.6}
+.edge.dim{opacity:.18}
+.edge-label{font-size:9.5px;fill:var(--muted);font-style:italic}
+.edge-label.hot{fill:var(--orange-dk);font-weight:700}
+.detail-empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 10px}
+.tag{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--soft);color:var(--brown)}
+.rel-link{display:inline-block;margin:3px 6px 0 0;font-size:12px;color:var(--orange);font-weight:700;
+  cursor:pointer;text-decoration:underline dotted}
+footer{position:fixed;bottom:0;left:0;right:0;background:rgba(250,248,245,.92);backdrop-filter:blur(4px);
+  border-top:1px solid var(--line);padding:8px 28px;font-size:11px;color:var(--muted);
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;z-index:40}
+footer b{color:var(--orange-dk)}
+.hidden{display:none}
+
+/* ---------- impact matrix ---------- */
+.mx-wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px}
+@media(max-width:1080px){.mx-wrap{grid-template-columns:1fr}}
+table.mx{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
+table.mx th,table.mx td{padding:10px 12px;border-bottom:1px solid var(--soft);text-align:center}
+table.mx th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:2px solid var(--soft)}
+table.mx th:first-child,table.mx td:first-child{text-align:left;font-weight:700}
+tr.mxrow{cursor:pointer;transition:.12s}
+tr.mxrow:hover{background:#FFF8F2}
+tr.mxrow.sel{background:#FFF1E4}
+.sym{display:inline-flex;width:24px;height:24px;border-radius:7px;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+.sym.R{background:#FDEBDD;color:var(--orange-dk)}
+.sym.O{background:#EFE4DA;color:var(--brown)}
+.sym.RO{background:#FCF0D2;color:#A07400}
+.sym.none{background:transparent;color:#D8D2C8}
+.mx-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:12px;align-items:center}
+.mx-legend .sym{width:18px;height:18px;font-size:11px;margin-right:5px}
+
+/* ---------- scenario sandbox ---------- */
+.preset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-bottom:18px}
+.preset{border:1px solid var(--line);border-radius:13px;padding:16px;background:#fff;cursor:pointer;transition:.15s;text-align:left}
+.preset:hover{border-color:var(--orange);transform:translateY(-2px);box-shadow:0 6px 16px rgba(232,113,58,.12)}
+.preset.active{border-color:var(--orange);background:#FFF6EC;box-shadow:0 6px 16px rgba(232,113,58,.15)}
+.preset .ic{font-size:22px}
+.preset h4{font-size:14px;font-weight:800;margin:8px 0 4px;color:var(--brown)}
+.preset p{font-size:12px;color:var(--muted)}
+.chain-step{display:flex;gap:12px;margin-bottom:12px;counter-increment:step}
+.chain{counter-reset:step}
+.chain-step::before{content:counter(step);flex:0 0 26px;height:26px;border-radius:50%;
+  background:var(--orange);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.chain-step div{font-size:13px;padding-top:3px}
+
+/* ---------- review heatmap (dealreview overlay) ---------- */
+.rv-bar{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted);
+  margin:0 0 14px;padding:9px 14px;background:#FFFDF9;border:1px solid var(--line);border-radius:10px}
+.rv-chip{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--ink)}
+.rv-dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.rv-card{border-radius:11px;padding:13px 15px;margin-top:14px;font-size:12.5px;border:1px solid}
+.rv-card h5{font-size:12px;font-weight:800;letter-spacing:.4px;margin-bottom:8px}
+.rv-card p{margin-bottom:6px}
+.rv-card p:last-child{margin-bottom:0}
+.rv-card .lbl{font-weight:800;color:var(--brown)}
+.rv-red{background:#FBEFED;border-color:#E5B7B2}
+.rv-major{background:#FDF3EA;border-color:#F0CBB2}
+.rv-minor{background:#FDF8E7;border-color:#EBD9A8}
+.rv-ok{background:#EFF5F0;border-color:#BFD6C4}
+.mx-rv{display:inline-block;width:8px;height:8px;border-radius:2px;margin-left:7px;vertical-align:1px}
+
+/* ---------- review compare (postReview before/after) ---------- */
+.view-toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin-bottom:12px}
+.view-toggle button{border:none;background:#fff;padding:6px 16px;font-size:12.5px;font-weight:700;color:var(--muted);transition:.15s}
+.view-toggle button.on{background:var(--brown);color:#fff}
+.cmp-counts{display:flex;gap:26px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.cmp-col{flex:1;min-width:250px}
+.cmp-col .lab{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.cmp-arrow{font-size:26px;font-weight:800;color:var(--orange)}
+.cmp-bar{display:flex;height:26px;border-radius:7px;overflow:hidden}
+.cmp-bar .seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11.5px;font-weight:800;min-width:22px;transition:width .5s ease}
+table.cmp{width:100%;border-collapse:collapse;font-size:13px}
+table.cmp th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:2px solid var(--soft)}
+table.cmp td{padding:11px 10px;border-bottom:1px solid var(--soft);vertical-align:top}
+.lvl-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;white-space:nowrap}
+.st-chip{font-size:10.5px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.st-redlined{background:#EFF5F0;color:var(--good);border:1px solid #BFD6C4}
+.st-pending{background:#FDF8E7;color:#A07400;border:1px solid #EBD9A8}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">DL</div>
+  <div class="brand">
+    <h1>DealLens</h1>
+    <p id="tagline">Interactive Investment Agreement Visualizer · LexPilot Suite</p>
+  </div>
+  <span class="badge-demo" id="demoBadge">Demo · Fictional Data</span>
+  <div class="hdr-spacer"></div>
+  <label class="btn" style="cursor:pointer">
+    <span id="importLabel">Import agreement JSON</span>
+    <input type="file" id="fileInput" accept=".json,application/json" class="hidden">
+  </label>
+  <button class="btn" id="langBtn">中文</button>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="sim" id="tabSim">Cap Table Simulator</button>
+  <button class="tab" data-tab="map" id="tabMap">Clause Relationship Map</button>
+  <button class="tab" data-tab="matrix" id="tabMatrix">Impact Matrix</button>
+  <button class="tab" data-tab="sandbox" id="tabSandbox">Scenario Sandbox</button>
+  <button class="tab" data-tab="compare" id="tabCompare">Review Compare</button>
+</nav>
+
+<main>
+  <!-- ================= CAP TABLE SIMULATOR ================= -->
+  <section class="panel active" id="panel-sim">
+    <div class="grid grid-sim">
+      <!-- controls -->
+      <div class="card">
+        <h3 id="scnTitle">Deal Scenarios</h3>
+
+        <div class="scn" id="scn-ratchet">
+          <div class="scn-head">
+            <input type="checkbox" id="chkRatchet">
+            <span data-i18n="scnRatchet">Performance Ratchet (对赌)</span>
+          </div>
+          <div class="scn-desc" data-i18n="scnRatchetD">If FY2027 revenue falls below target, Founders compensate Investors with equity.</div>
+          <div class="scn-body">
+            <div class="slider-row">
+              <label><span data-i18n="revAchv">FY2027 revenue achievement</span><output id="outAchv">100%</output></label>
+              <input type="range" id="rngAchv" min="50" max="120" step="5" value="100">
+            </div>
+            <div class="note" data-i18n="revNote">Target: RMB 100M revenue. Compensation pool = new investors' stake × shortfall.</div>
+          </div>
+        </div>
+
+        <div class="scn" id="scn-redemption">
+          <div class="scn-head">
+            <input type="checkbox" id="chkRedeem">
+            <span data-i18n="scnRedeem">Redemption Triggered (回购)</span>
+          </div>
+          <div class="scn-desc" data-i18n="scnRedeemD">No Qualified IPO by 2029-12-31 → Investors may demand buyback at cost + 8% simple interest.</div>
+          <div class="scn-body">
+            <div class="slider-row">
+              <label><span data-i18n="exYear">Redemption exercised in year</span><output id="outYear">2030</output></label>
+              <input type="range" id="rngYear" min="2029" max="2031" step="1" value="2030">
+            </div>
+          </div>
+        </div>
+
+        <div class="scn" id="scn-anti">
+          <div class="scn-head">
+            <input type="checkbox" id="chkAnti">
+            <span data-i18n="scnAnti">Down Round → Anti-dilution</span>
+          </div>
+          <div class="scn-desc" data-i18n="scnAntiD">Next round priced below Pre-A price triggers broad-based weighted-average adjustment.</div>
+          <div class="scn-body">
+            <div class="slider-row">
+              <label><span data-i18n="nextPrice">Next-round price vs Pre-A</span><output id="outPrice">100%</output></label>
+              <input type="range" id="rngPrice" min="50" max="100" step="5" value="100">
+            </div>
+            <div class="note" data-i18n="antiNote">Illustrative: assumes next round issues 20% new shares.</div>
+          </div>
+        </div>
+
+        <div class="note" id="ctrlHint">Toggle scenarios to see how ownership, rights and obligations shift in real time.</div>
+      </div>
+
+      <!-- visualization -->
+      <div class="card">
+        <h3 id="ctTitle">Ownership Structure — Post-Pre-A Closing</h3>
+        <div class="viz-wrap">
+          <div class="donut-box">
+            <svg id="donut" width="250" height="250" viewBox="0 0 250 250"></svg>
+            <div class="donut-center">
+              <div class="v" id="postMoney">RMB 350M</div>
+              <div class="l" id="postMoneyL">Post-money valuation</div>
+            </div>
+          </div>
+          <table class="ct">
+            <thead><tr>
+              <th data-i18n="thHolder">Shareholder</th>
+              <th data-i18n="thPct">Ownership</th>
+              <th data-i18n="thChg">Δ vs base</th>
+              <th class="bar-cell"></th>
+            </tr></thead>
+            <tbody id="ctBody"></tbody>
+          </table>
+        </div>
+        <div class="note" id="dealSummary"></div>
+      </div>
+
+      <!-- impact analysis -->
+      <div>
+        <div class="card" style="margin-bottom:16px">
+          <h3 id="impTitle">Who Is Affected &amp; How</h3>
+          <div id="impacts"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CLAUSE MAP ================= -->
+  <section class="panel" id="panel-map">
+    <div class="map-wrap">
+      <div class="card">
+        <h3 id="mapTitle">Clause Relationship Map — Pre-A SPA / SHA</h3>
+        <div class="view-toggle hidden" id="viewToggle">
+          <button data-v="pre" class="on" id="vwPre">Before</button>
+          <button data-v="post" id="vwPost">After</button>
+        </div>
+        <div class="rv-bar hidden" id="rvBar"></div>
+        <svg class="map" id="clauseMap" viewBox="0 0 1060 640"></svg>
+        <div class="note" id="mapHint">Click any clause to see its plain-language meaning, the rights-holder &amp; obligor, and every clause it connects to.</div>
+      </div>
+      <div class="card">
+        <h3 id="detTitle">Clause Detail</h3>
+        <div id="clauseDetail"><div class="detail-empty" id="detEmpty">← Select a clause node</div></div>
+      </div>
+    </div>
+  </section>
+  <!-- ================= IMPACT MATRIX ================= -->
+  <section class="panel" id="panel-matrix">
+    <div class="mx-wrap">
+      <div class="card">
+        <h3 id="mxTitle">Rights &amp; Obligations Matrix</h3>
+        <div class="mx-legend">
+          <span><span class="sym R">+</span><span data-i18n="legendR">right / benefit</span></span>
+          <span><span class="sym O">−</span><span data-i18n="legendO">obligation / constraint</span></span>
+          <span><span class="sym RO">±</span><span data-i18n="legendRO">both</span></span>
+          <span id="mxRvLegend" style="display:inline-flex;gap:12px;flex-wrap:wrap"></span>
+        </div>
+        <table class="mx"><thead id="mxHead"></thead><tbody id="mxBody"></tbody></table>
+        <div class="note" id="mxHint">Click a row to see the clause detail.</div>
+      </div>
+      <div class="card">
+        <h3 id="mxDetTitle">Clause Detail</h3>
+        <div id="mxDetail"><div class="detail-empty" id="mxDetEmpty">← Select a clause row</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SCENARIO SANDBOX ================= -->
+  <section class="panel" id="panel-sandbox">
+    <div class="card">
+      <h3 id="sbTitle">Scenario Sandbox</h3>
+      <div class="note" id="sbHint" style="margin-bottom:14px">One-click preset stress tests — each preset sets the simulator controls and walks through the consequence chain.</div>
+      <div class="preset-grid" id="presetGrid"></div>
+      <div id="chainBox"></div>
+    </div>
+  </section>
+
+  <!-- ================= REVIEW COMPARE (postReview) ================= -->
+  <section class="panel" id="panel-compare">
+    <div class="card">
+      <h3 id="cmpTitle">DealReview Before / After</h3>
+      <div id="cmpBody"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span><b>DealLens v1.1</b> · <span id="ftSuite">Component of the LexPilot legal-tech suite</span></span>
+  <span id="ftDemo">Demo dataset: fictional “NovaMol Therapeutics” Pre-A round. All parties, figures &amp; terms are fictitious.</span>
+  <span id="ftPrivacy">All parsing &amp; rendering runs locally in your browser. Nothing is uploaded.</span>
+</footer>
+<script>
+/* =========================================================
+   DealLens v0.1 MVP — single-file, offline, zero-dependency
+   Demo dataset: fictional "NovaMol Therapeutics" Pre-A round
+   ========================================================= */
+"use strict";
+
+let LANG = "en";
+
+/* ---------------- deal data (desensitized, fictional) ---------------- */
+const DEAL = {
+  isDemo: true,
+  company: { en: "NovaMol Therapeutics", zh: "诺曜生物（虚构）" },
+  roundName: { en: "Pre-A Round", zh: "Pre-A 轮" },
+  preMoney: 300, newMoney: 50, unit: { en: "RMB M", zh: "百万元人民币" },
+  cashOnHand: 80,
+  holders: [
+    { id:"founders", en:"Founding Team",        zh:"创始团队",        pre:60, color:"#6B4A2F" },
+    { id:"esop",     en:"ESOP Platform",        zh:"员工持股平台",    pre:10, color:"#D9CFC4" },
+    { id:"angel",    en:"Firstlight Angel",     zh:"初阳天使基金",    pre:20, color:"#F2B33D" },
+    { id:"angelp",   en:"Greenbridge Capital",  zh:"青桥资本",        pre:10, color:"#C9A15A" },
+    { id:"lead",     en:"Dawnrise Ventures (Lead)", zh:"晨曦创投（领投）", pre:0, money:30, color:"#E8713A" },
+    { id:"follow",   en:"Voyager Capital",      zh:"远航资本",        pre:0, money:20, color:"#B8551F" }
+  ],
+  ratchet: { target: 100 },
+  redemption: { rate: 0.08, closingYear: 2026, deadline: "2029-12-31" },
+
+  /* v1.0: parties, clause×party effects, sandbox presets */
+  parties: [
+    { id:"founders", en:"Founding Team", zh:"创始团队" },
+    { id:"company",  en:"Company", zh:"公司" },
+    { id:"newinv",   en:"New Investors", zh:"新投资人" },
+    { id:"angels",   en:"Angel Holders", zh:"天使股东" }
+  ],
+  effects: {
+    defs:    { company:{t:"O", en:"Bound by defined terms", zh:"受定义约束"} },
+    cp:      { newinv:{t:"R", en:"Walk-away if unmet", zh:"未满足可放弃交易"}, company:{t:"O", en:"Must satisfy", zh:"负责满足"}, founders:{t:"O", en:"Must procure", zh:"促使满足"} },
+    board:   { newinv:{t:"R", en:"Veto on reserved matters", zh:"保留事项否决权"}, founders:{t:"O", en:"Decisions constrained", zh:"决策受约束"}, company:{t:"O", en:"Execution constrained", zh:"执行受约束"} },
+    perf:    { newinv:{t:"R", en:"Basis for compensation claim", zh:"补偿请求权基础"}, founders:{t:"O", en:"The promisor", zh:"业绩承诺方"}, company:{t:"O", en:"The promisor", zh:"业绩承诺方"} },
+    ipo:     { newinv:{t:"R", en:"Deadline protection", zh:"期限利益"}, company:{t:"O", en:"IPO obligation", zh:"上市义务"}, founders:{t:"O", en:"Bound to deliver", zh:"连带推动"} },
+    downround:{ newinv:{t:"R", en:"Price protection triggers", zh:"价格保护触发"}, founders:{t:"O", en:"Diluted", zh:"被稀释"}, angels:{t:"O", en:"Diluted", zh:"被稀释"}, company:{t:"O", en:"Issuer", zh:"发行方"} },
+    ratchet: { newinv:{t:"R", en:"Receive compensated shares", zh:"受让补偿股份"}, founders:{t:"O", en:"Pay with own equity", zh:"以自有股份补偿"} },
+    redeem:  { newinv:{t:"R", en:"Put option", zh:"回售权"}, company:{t:"O", en:"Primary debtor", zh:"第一顺位回购义务"}, founders:{t:"O", en:"Joint & several", zh:"连带责任"} },
+    antid:   { newinv:{t:"R", en:"Extra shares", zh:"获得补偿股份"}, founders:{t:"O", en:"Diluted most", zh:"被摊薄最多"}, angels:{t:"O", en:"Diluted", zh:"被摊薄"}, company:{t:"O", en:"Issues shares", zh:"增发股份"} },
+    drag:    { newinv:{t:"R", en:"Drag & tag rights", zh:"领售/随售权"}, founders:{t:"RO", en:"May be dragged / may tag", zh:"可被拖售/可随售"}, angels:{t:"RO", en:"May be dragged / may tag", zh:"可被拖售/可随售"} },
+    liq:     { newinv:{t:"R", en:"Paid first (1x)", zh:"优先受偿（1 倍）"}, founders:{t:"O", en:"Residual only", zh:"仅剩余分配"}, angels:{t:"O", en:"Residual only", zh:"仅剩余分配"} }
+  },
+  presets: [
+    { id:"miss30", icon:"📉", chkRatchet:70,
+      title:{en:"Revenue Miss −30%", zh:"业绩缺口 30%"},
+      desc:{en:"FY2027 achievement at 70% — the ratchet fires.", zh:"2027 财年完成率仅 70%——对赌被触发。"},
+      chain:[
+        {en:"FY2027 revenue reaches only 70% of the RMB 100M target", zh:"2027 财年营收仅达 1 亿元目标的 70%"},
+        {en:"Compensation pool = new investors' 14.3% stake × 30% shortfall ≈ 4.3 pp", zh:"补偿池 = 新投资人 14.3% 持股 × 30% 缺口 ≈ 4.3 个百分点"},
+        {en:"Founders pay with their own shares: 51.4% → ~47.1%", zh:"创始团队以自有股份补偿：51.4% → 约 47.1%"},
+        {en:"Investor voice on reserved matters grows; board rebalance risk rises", zh:"投资人在保留事项上的话语权上升，董事会格局存在重议风险"},
+        {en:"Before any A-share filing the ratchet must be terminated — clean-up obligation activated", zh:"A 股申报前须终止对赌安排——清理义务被激活"}
+      ]},
+    { id:"redeem30", icon:"⏰", chkRedeem:2030,
+      title:{en:"No IPO by 2029 → Redemption", zh:"2029 未上市 → 回购"},
+      desc:{en:"Deadline missed; investors exercise the put in 2030.", zh:"期限届满，投资人 2030 年行使回购权。"},
+      chain:[
+        {en:"2029-12-31 passes with no Qualified IPO", zh:"2029-12-31 届满，未完成合格上市"},
+        {en:"Exercised in 2030: RMB 50M × (1 + 8% × 4 yrs) = RMB 66M", zh:"2030 年行使：5,000 万 × (1 + 8% × 4 年) = 6,600 万元"},
+        {en:"Cash on hand RMB 80M barely covers it — R&D runway is burned", zh:"账面现金 8,000 万勉强覆盖——研发资金被挤占殆尽"},
+        {en:"If unpaid: forced asset sales / dividends / liquidation; the 1x liquidation preference activates", zh:"若未支付：可被要求变卖资产、分红乃至清算筹资；1 倍清算优先权随之启动"},
+        {en:"Going-concern doubt is a hard IPO blocker; founders' joint liability reaches personal assets", zh:"持续经营疑虑构成上市硬伤；创始人连带责任穿透至个人资产"}
+      ]},
+    { id:"down50", icon:"↘️", chkAnti:50,
+      title:{en:"Down Round at 50%", zh:"五折低价融资"},
+      desc:{en:"Series A prices at half the Pre-A price.", zh:"A 轮以 Pre-A 价格的五折发行。"},
+      chain:[
+        {en:"Series A prices at 50% of the Pre-A price", zh:"A 轮发行价为 Pre-A 价格的 50%"},
+        {en:"Broad-based weighted-average anti-dilution kicks in", zh:"广义加权平均反稀释调整启动"},
+        {en:"New investors receive ≈1.6 pp of extra shares", zh:"新投资人获得约 1.6 个百分点补偿股份"},
+        {en:"Every other holder shrinks pro rata — founders most of all", zh:"其余股东按比例缩水——创始团队首当其冲"},
+        {en:"Down-round history must be disclosed and settled in the listing review", zh:"低价调整历史在上市审核中需披露并了结"}
+      ]},
+    { id:"storm", icon:"⛈️", chkRatchet:60, chkRedeem:2031,
+      title:{en:"Perfect Storm", zh:"复合打击"},
+      desc:{en:"Ratchet + redemption alive at the same time.", zh:"对赌与回购同时被触发。"},
+      chain:[
+        {en:"Achievement only 60% AND no IPO by 2029 — both triggers live", zh:"业绩仅 60% 且 2029 未上市——双触发同时存活"},
+        {en:"Ratchet moves ≈5.7 pp from founders to investors (51.4% → ~45.7%)", zh:"对赌划走约 5.7 个百分点（51.4% → 约 45.7%）"},
+        {en:"Redemption exercised in 2031: RMB 50M × (1 + 8% × 5 yrs) = RMB 70M vs RMB 80M cash", zh:"2031 年行使回购：5,000 万 × (1 + 8% × 5 年) = 7,000 万，现金仅 8,000 万"},
+        {en:"Founders face equity dilution AND personal joint liability simultaneously", zh:"创始人同时承受股权稀释与个人连带责任"},
+        {en:"Negotiation bottom line: never let two triggers survive together", zh:"谈判底线：绝不让两个触发器同时存活"}
+      ]}
+  ]
+};
+
+/* ---------------- clause graph data ---------------- */
+let CLAUSES = [
+  { id:"defs", x:40, y:50, tag:{en:"Foundation",zh:"基础条款"},
+    en:"Definitions & Interpretation", zh:"定义与释义",
+    plain:{ en:"The dictionary of the whole agreement. Terms like \u201cQualified IPO\u201d, \u201cControl\u201d and \u201cRelated Party\u201d are defined here — every operative clause inherits these definitions, so small wording changes here quietly shift risk everywhere else.",
+            zh:"整份协议的“词典”。“合格上市”“控制权”“关联方”等关键概念都在这里定义——所有操作性条款都引用这里的定义，此处的措辞微调会悄悄改变全局风险分配。" },
+    rh:{en:["All parties (clarity)"],zh:["各方（确定性）"]}, ob:{en:["—"],zh:["—"]},
+    related:["cp","perf","ipo"] },
+
+  { id:"cp", x:40, y:210, tag:{en:"Foundation",zh:"基础条款"},
+    en:"Conditions Precedent", zh:"交割先决条件",
+    plain:{ en:"The checklist that must be satisfied before investors wire money: board approvals, IP assignments, key-person agreements, rectification of historical defects. If CPs fail, the deal does not close and investors walk away clean.",
+            zh:"投资人打款前必须全部满足的清单：董事会批准、知识产权转让、关键人协议、历史瑕疵整改。条件不满足，交易不交割，投资人可以全身而退。" },
+    rh:{en:["Dawnrise, Voyager (walk-away right)"],zh:["晨曦创投、远航资本（退出权）"]},
+    ob:{en:["Company & Founders (must satisfy)"],zh:["公司与创始团队（负责满足）"]},
+    related:["defs","board"] },
+
+  { id:"board", x:40, y:390, tag:{en:"Governance",zh:"公司治理"},
+    en:"Board & Protective Provisions", zh:"董事会与保护性条款",
+    plain:{ en:"Board of 5: Founders 3 seats, Lead Investor 1, Angel 1. A list of reserved matters (budget, new financing, IP disposal, related-party deals…) requires the investor director's consent — a de facto veto over major decisions.",
+            zh:"董事会 5 席：创始团队 3 席、领投方 1 席、天使方 1 席。预算、再融资、知识产权处置、关联交易等保留事项须投资人董事同意——构成对重大事项的事实否决权。" },
+    rh:{en:["Dawnrise (veto on reserved matters)"],zh:["晨曦创投（保留事项否决权）"]},
+    ob:{en:["Company & Founders (constrained)"],zh:["公司与创始团队（受约束）"]},
+    related:["cp","redeem"] },
+
+  { id:"perf", x:310, y:50, tag:{en:"Economic Trigger",zh:"经济触发器"},
+    en:"Performance Commitment (FY2027)", zh:"业绩承诺（2027 财年）",
+    plain:{ en:"The company commits to RMB 100M FY2027 revenue. This clause alone does nothing — its teeth are in the Ratchet clause it triggers when the target is missed.",
+            zh:"公司承诺 2027 财年实现 1 亿元营收。该条款本身不产生后果——它的“牙齿”在于业绩不达标时所触发的估值调整条款。" },
+    rh:{en:["Dawnrise, Voyager"],zh:["晨曦创投、远航资本"]},
+    ob:{en:["Company & Founders (the promise)"],zh:["公司与创始团队（承诺方）"]},
+    related:["ratchet"] },
+
+  { id:"ipo", x:310, y:210, tag:{en:"Economic Trigger",zh:"经济触发器"},
+    en:"Qualified IPO Deadline", zh:"合格上市期限",
+    plain:{ en:"Defines both the deadline (2029-12-31) and what counts as a \u201cQualified IPO\u201d (exchange + minimum valuation). Miss it and the Redemption Right springs to life.",
+            zh:"既规定上市期限（2029-12-31），也定义什么算“合格上市”（交易所 + 最低估值）。期限一过，回购权即刻被激活。" },
+    rh:{en:["Dawnrise, Voyager"],zh:["晨曦创投、远航资本"]},
+    ob:{en:["Company & Founders"],zh:["公司与创始团队"]},
+    related:["redeem","defs"] },
+
+  { id:"downround", x:310, y:390, tag:{en:"Economic Trigger",zh:"经济触发器"},
+    en:"Down-round Issuance", zh:"低价新股发行",
+    plain:{ en:"If the next round prices below the Pre-A price, existing investors' economics are protected through the Anti-dilution clause. Not a breach — but it moves ownership.",
+            zh:"若下一轮发行价低于 Pre-A 价格，现有投资人的经济利益将通过反稀释条款获得保护。不构成违约——但会直接改变股权结构。" },
+    rh:{en:["— (a market event, not a breach)"],zh:["—（市场事件，非违约）"]},
+    ob:{en:["Company (issuer)"],zh:["公司（发行方）"]},
+    related:["antid"] },
+
+  { id:"ratchet", x:580, y:50, tag:{en:"Consequence",zh:"后果条款"},
+    en:"Equity Compensation (Ratchet)", zh:"股权补偿（估值调整）",
+    plain:{ en:"On missing the FY2027 target, Founders transfer equity to the new investors pro rata: compensation = investors' stake × shortfall %. The company issues nothing — founders personally pay with their own shares.",
+            zh:"业绩不达标时，由创始团队按持股比例向新投资人转让股权：补偿量 = 投资人持股 × 业绩缺口比例。公司不发新股——创始人用自己的股份个人赔付。" },
+    rh:{en:["Dawnrise, Voyager (receive shares)"],zh:["晨曦创投、远航资本（受让股份）"]},
+    ob:{en:["Founding Team (pay with own equity)"],zh:["创始团队（以自有股份补偿）"]},
+    related:["perf","captable"] },
+
+  { id:"redeem", x:580, y:210, tag:{en:"Consequence",zh:"后果条款"},
+    en:"Redemption Right", zh:"回购权",
+    plain:{ en:"After the IPO deadline passes, investors may demand the Company (with Founders jointly liable) buy back their shares at cost + 8% simple interest. It converts equity risk into a debt-like claim against the company.",
+            zh:"上市期限届满后，投资人可要求公司（创始团队承担连带责任）按“本金 + 8% 单利”回购其股份。这把股权投资风险转化为对公司近乎债权的主张。" },
+    rh:{en:["Dawnrise, Voyager (put option)"],zh:["晨曦创投、远航资本（回售权）"]},
+    ob:{en:["Company (primary), Founders (joint)"],zh:["公司（主债务人）、创始团队（连带）"]},
+    related:["ipo","captable","liq"] },
+
+  { id:"antid", x:580, y:390, tag:{en:"Consequence",zh:"后果条款"},
+    en:"Anti-dilution Adjustment", zh:"反稀释调整",
+    plain:{ en:"Broad-based weighted-average formula: on a down round, investors receive extra shares so their effective purchase price is adjusted down. Everyone else's percentage shrinks — founders most of all.",
+            zh:"广义加权平均公式：低价融资时投资人获得额外股份，其有效买入价被向下调整。其他所有人的持股比例被摊薄——创始团队首当其冲。" },
+    rh:{en:["Dawnrise, Voyager"],zh:["晨曦创投、远航资本"]},
+    ob:{en:["All existing holders (diluted)"],zh:["全体老股东（被摊薄）"]},
+    related:["downround","captable"] },
+
+  { id:"drag", x:840, y:50, tag:{en:"Exit",zh:"退出条款"},
+    en:"Drag-along / Tag-along", zh:"领售权 / 随售权",
+    plain:{ en:"If a qualified trade sale is approved, drag-along forces all shareholders to sell on the same terms; tag-along guarantees minorities can join any founder sale. It decides who can be taken along — and who can be forced along — at exit.",
+            zh:"合格整体出售获批时，领售权可强制全体股东按同等条款共同出售；随售权保障小股东有权加入创始人的任何出售。它决定退出时“谁有权一起走、谁必须一起走”。" },
+    rh:{en:["Majority+Investors (drag); all holders (tag)"],zh:["多数股东+投资人（领售）；全体股东（随售）"]},
+    ob:{en:["All shareholders (can be dragged)"],zh:["全体股东（可能被强制随售）"]},
+    related:["captable","liq"] },
+
+  { id:"captable", x:840, y:210, tag:{en:"Anchor",zh:"核心锚点"}, anchor:true,
+    en:"Cap Table (Ownership)", zh:"股权结构",
+    plain:{ en:"Not a clause — the living result of all clauses. Every trigger above reshapes this table. Watch it in the Simulator tab as scenarios are toggled.",
+            zh:"不是条款，而是所有条款共同作用的“活结果”。上述每个触发器都会重塑这张表——切换到模拟器页签，拨动情景即可亲眼看到。" },
+    rh:{en:["—"],zh:["—"]}, ob:{en:["—"],zh:["—"]},
+    related:["ratchet","redeem","antid","drag"] },
+
+  { id:"liq", x:840, y:390, tag:{en:"Exit",zh:"退出条款"},
+    en:"Liquidation Preference (1x)", zh:"清算优先权（1 倍）",
+    plain:{ en:"On liquidation, deemed liquidation (incl. most M&A exits) or insolvency after a redemption default, investors take back 1x their investment before anyone else splits the remainder. Determines who gets paid first when things go wrong.",
+            zh:"在清算、视同清算（含多数并购退出）或回购违约后的资不抵债情形下，投资人先取回 1 倍本金，剩余才由其他人分配。它决定“出事时谁先拿到钱”。" },
+    rh:{en:["Dawnrise, Voyager (priority)"],zh:["晨曦创投、远航资本（优先受偿）"]},
+    ob:{en:["Founders & Angels (residual)"],zh:["创始团队与天使股东（剩余分配）"]},
+    related:["redeem","drag"] }
+];
+
+let EDGES = [
+  { f:"defs",  t:"cp",      en:"defines",            zh:"提供定义" },
+  { f:"cp",    t:"board",   en:"effective at closing", zh:"交割后生效" },
+  { f:"perf",  t:"ratchet", en:"shortfall triggers", zh:"不达标触发" },
+  { f:"ratchet",t:"captable",en:"founders → investors", zh:"创始人→投资人" },
+  { f:"ipo",   t:"redeem",  en:"missed deadline triggers", zh:"逾期触发" },
+  { f:"redeem",t:"captable",en:"buyback / exit",     zh:"回购 / 退出" },
+  { f:"redeem",t:"liq",     en:"default → liquidation risk", zh:"违约→清算风险" },
+  { f:"downround",t:"antid",en:"triggers",           zh:"触发" },
+  { f:"antid", t:"captable",en:"extra shares issued", zh:"增发补偿股份" },
+  { f:"drag",  t:"captable",en:"forces joint sale",  zh:"强制共同出售" }
+];
+
+/* ---------------- review overlay (dealreview format) ---------------- */
+/* Risk colors: 🔴 red line / 🟠 major / 🟡 negotiable / 🟢 market standard */
+const RV = { red:"#C0392B", major:"#E8713A", minor:"#F2B33D", ok:"#3E7C4F" };
+
+/* Demo overlay — shows what DealLens looks like after a dealreview write-back.
+   Real overlays arrive via Import (clauses[].review + reviewMeta). */
+DEAL.reviewMeta = { tool:"dealreview", date:"2026-06-30",
+  note:{ en:"Demo review overlay — all findings fictitious.", zh:"演示审核覆盖层——所有发现均为虚构。" } };
+(function(){
+  const R = {
+    redeem: { level:"red", card:"卡1/2",
+      issue:{en:"Founders bear joint & several liability for the buyback — personal assets are exposed if the company cannot pay.",
+             zh:"创始团队对回购承担连带责任——公司无力支付时将穿透至个人资产。"},
+      floor:{en:"Liability limited to the equity then held by founders; company buyback subject to capital-reduction procedure.",
+             zh:"创始人责任以届时所持股权为限；公司回购须以定向减资程序为前提。"},
+      trade:{en:"Offer: accept the 8% simple interest and the 2029 deadline in exchange for deleting joint liability.",
+             zh:"交换：接受 8% 单利与 2029 期限，换取删除创始人连带。"}},
+    ratchet: { level:"major", card:"卡3",
+      issue:{en:"Founders compensate with their own shares and there is no cap — a deep miss could cost them control.",
+             zh:"创始人以自有股份补偿且无上限——深度业绩缺口可能令其失去控制权。"},
+      floor:{en:"Cap total compensation (e.g. ≤5 pp) or convert to a company-level price adjustment.",
+             zh:"设置补偿上限（如 ≤5 个百分点）或改为公司层面价格调整。"},
+      trade:{en:"Offer: accept the FY2027 target as-is in exchange for the compensation cap.",
+             zh:"交换：2027 财年业绩目标维持不变，换取补偿上限。"}},
+    perf: { level:"minor", card:"卡3",
+      issue:{en:"The RMB 100M target is aggressive and the revenue-recognition caliber is left open.",
+             zh:"1 亿元目标偏激进，且收入确认口径留白。"},
+      floor:{en:"Define the recognition caliber (audited, excl. related-party) and add a cure period.",
+             zh:"明确确认口径（经审计、剔除关联交易）并加补救宽限期。"},
+      trade:{en:"No trade needed — drafting fix.", zh:"无需交换——措辞修订即可。"}},
+    board: { level:"minor", card:"卡8",
+      issue:{en:"The reserved-matters list is long; even routine budget adjustments would need investor consent.",
+             zh:"保留事项清单偏长，常规预算调整也需投资人董事同意。"},
+      floor:{en:"Narrow to material matters with quantitative thresholds.",
+             zh:"限缩为重大事项并设量化门槛。"},
+      trade:{en:"Trade: the 1 investor board seat stays as-is in exchange for narrowing the list.",
+             zh:"交换：投资人 1 席董事维持现状，换取清单限缩。"}},
+    antid: { level:"ok", card:"卡4",
+      issue:{en:"Broad-based weighted-average — the moderate, market-standard form.",
+             zh:"广义加权平均——温和的市场惯例形式。"},
+      floor:{en:"Within market range; cleared.", zh:"处于市场惯例区间，放行。"},
+      trade:{en:"—", zh:"—"}},
+    liq: { level:"ok", card:"卡5",
+      issue:{en:"1x non-participating preference — market standard.",
+             zh:"1 倍非参与清算优先——市场惯例。"},
+      floor:{en:"Cleared; resist any participation feature or higher multiple in later rounds.",
+             zh:"放行；后续轮次须抵制参与分配或更高倍数。"},
+      trade:{en:"—", zh:"—"}},
+    drag: { level:"ok", card:"卡6",
+      issue:{en:"Drag-along conditioned on a qualified sale approved by the board — acceptable.",
+             zh:"领售以董事会批准的合格出售为前提——可接受。"},
+      floor:{en:"Cleared within market range.", zh:"处于市场惯例区间，放行。"},
+      trade:{en:"—", zh:"—"}}
+  };
+  CLAUSES.forEach(c=>{ if(R[c.id]) c.review = R[c.id]; });
+})();
+
+/* Demo postReview — fictitious before/after comparison for the demo dataset.
+   Real comparisons arrive via Import (postReview block, written back by DealReview). */
+DEAL.postReview = { tool:"dealreview", date:"2026-06-30",
+  basis:{en:"Demo comparison — 2 fictitious redlines accepted, 2 items still open.",
+         zh:"演示对比——2 处虚构修订已落实，2 项仍待谈判。"},
+  clauses:{
+    redeem:{level:"major", status:"redlined",
+      change:{en:"Founders' joint & several liability deleted; in exchange the 8% simple interest and the 2029 deadline were accepted.",
+              zh:"已删除创始人连带责任；交换条件为接受 8% 单利与 2029 年期限。"}},
+    ratchet:{level:"minor", status:"redlined",
+      change:{en:"Compensation now capped at 5 pp; the FY2027 revenue target stays unchanged.",
+              zh:"补偿已设置 5 个百分点上限；2027 财年业绩目标维持不变。"}},
+    perf:{status:"pending",
+      change:{en:"Open: revenue-recognition caliber (audited, excl. related-party) and a cure period to be added in the definitive documents.",
+              zh:"待落实：收入确认口径（经审计、剔除关联交易）与补救宽限期将在正式文件中补充。"}},
+    board:{status:"pending",
+      change:{en:"Open: narrow the reserved-matters list with quantitative materiality thresholds.",
+              zh:"待落实：保留事项清单待按量化重大性门槛限缩。"}}
+  }};
+</script>
+<script>
+/* ---------------- i18n ---------------- */
+const I18N = {
+  en: {
+    tagline:"Interactive Investment Agreement Visualizer · LexPilot Suite",
+    demoBadge:"Demo · Fictional Data", importLabel:"Import agreement JSON", langBtn:"中文",
+    tabSim:"Cap Table Simulator", tabMap:"Clause Relationship Map",
+    scnTitle:"Deal Scenarios", ctrlHint:"Toggle scenarios to see how ownership, rights and obligations shift in real time.",
+    scnRatchet:"Performance Ratchet (对赌)",
+    scnRatchetD:"If FY2027 revenue falls below target, Founders compensate Investors with equity.",
+    revAchv:"FY2027 revenue achievement",
+    revNote:"Target: RMB 100M revenue. Compensation pool = new investors' stake × shortfall.",
+    scnRedeem:"Redemption Triggered (回购)",
+    scnRedeemD:"No Qualified IPO by 2029-12-31 → Investors may demand buyback at cost + 8% simple interest.",
+    exYear:"Redemption exercised in year",
+    scnAnti:"Down Round → Anti-dilution",
+    scnAntiD:"Next round priced below Pre-A price triggers broad-based weighted-average adjustment.",
+    nextPrice:"Next-round price vs Pre-A",
+    antiNote:"Illustrative: assumes next round issues 20% new shares.",
+    ctTitle:"Ownership Structure — Post-Pre-A Closing", postMoneyL:"Post-money valuation",
+    thHolder:"Shareholder", thPct:"Ownership", thChg:"Δ vs base",
+    impTitle:"Who Is Affected & How", mapTitle:"Clause Relationship Map — Pre-A SPA / SHA",
+    mapHint:"Click any clause to see its plain-language meaning, the rights-holder & obligor, and every clause it connects to.",
+    detTitle:"Clause Detail", detEmpty:"← Select a clause node",
+    ftSuite:"Component of the LexPilot legal-tech suite",
+    ftDemo:"Demo dataset: fictional \u201cNovaMol Therapeutics\u201d Pre-A round. All parties, figures & terms are fictitious.",
+    ftPrivacy:"All parsing & rendering runs locally in your browser. Nothing is uploaded.",
+    rh:"Rights-holder", ob:"Obligor", rel:"Connected clauses",
+    baseT:"Base case — closing as signed",
+    noTrigT:"No scenario triggered",
+    noTrigP:"The signed structure holds. Toggle a scenario on the left to stress-test it.",
+    dilutionNote:"At closing, the RMB 50M new money dilutes all existing holders by 14.3%: Founders 60.0% → 51.4%.",
+    importOk:"Custom dataset loaded.", importBad:"Invalid file: expected DealLens JSON with \u201cholders\u201d and \u201cround\u201d.",
+    importNotJson:"This is an original agreement file (Word/PDF). DealLens imports the structured JSON description file — please convert the agreement first with the extraction Skill (or send it to your AI assistant with the DealLens extraction prompt), then import the generated .json here.",
+    importParseErr:"The file is not valid JSON. Please export the description file again from the extraction Skill.",
+    impactOn:"Impact on", gov:"Governance", ipoL:"IPO / compliance", foundersL:"Founders' interests",
+    tabMatrix:"Impact Matrix", tabSandbox:"Scenario Sandbox",
+    mxTitle:"Rights & Obligations Matrix", mxHint:"Click a row to see the clause detail.",
+    mxDetTitle:"Clause Detail", mxDetEmpty:"← Select a clause row", thClause:"Clause",
+    legendR:"right / benefit", legendO:"obligation / constraint", legendRO:"both",
+    mxEmpty:"This dataset carries no matrix data (clause effects).",
+    sbTitle:"Scenario Sandbox", sbEmpty:"No presets in this dataset.",
+    sbHint:"One-click preset stress tests — each preset sets the simulator controls and walks through the consequence chain.",
+    sbView:"Open in Simulator", sbChain:"Consequence chain",
+    rvBarReviewed:"dealreview overlay:", rvMetaSrc:"reviewed by",
+    rv_red:"Red line", rv_major:"Major", rv_minor:"Negotiable", rv_ok:"Market std · cleared",
+    rvTitle:"Review note", rvIssue:"Issue", rvFloor:"Acceptable floor", rvTrade:"Suggested trade",
+    tabCompare:"Review Compare", cmpTitle:"DealReview Before / After — what the redlines change",
+    cmpBefore:"Before review", cmpAfter:"After redlines", cmpStatus:"Status", cmpChange:"What changed",
+    cmpEmpty:"This dataset carries no post-review comparison (postReview block). Run DealReview on the agreements and write the redline outcome back into the JSON — the before/after view will appear here.",
+    stRedlined:"Redlined ✓", stPending:"Open item", vwPre:"Before", vwPost:"After",
+    prTitle:"Redline outcome", cmpGotoPre:"View 'before' heatmap", cmpGotoPost:"View 'after' heatmap"
+  },
+  zh: {
+    tagline:"投资协议交互可视化工具 · LexPilot 产品矩阵",
+    demoBadge:"演示模式 · 虚构数据", importLabel:"导入协议 JSON", langBtn:"English",
+    tabSim:"股权结构模拟器", tabMap:"条款关系图谱",
+    scnTitle:"交易情景", ctrlHint:"拨动左侧情景开关，实时查看股权、权利与义务如何变化。",
+    scnRatchet:"业绩对赌（估值调整）",
+    scnRatchetD:"若 2027 财年营收低于承诺目标，创始团队以自有股权向投资人补偿。",
+    revAchv:"2027 财年营收完成率",
+    revNote:"承诺目标：营收 1 亿元。补偿池 = 新投资人持股 × 业绩缺口比例。",
+    scnRedeem:"回购条款被触发",
+    scnRedeemD:"2029-12-31 前未完成合格上市 → 投资人可要求按“本金 + 8% 单利”回购。",
+    exYear:"回购行使年份",
+    scnAnti:"低价融资 → 反稀释",
+    scnAntiD:"下一轮发行价低于 Pre-A 价格时，触发广义加权平均反稀释调整。",
+    nextPrice:"下一轮价格 / Pre-A 价格",
+    antiNote:"示意假设：下一轮发行 20% 新股。",
+    ctTitle:"股权结构 — Pre-A 交割后", postMoneyL:"投后估值",
+    thHolder:"股东", thPct:"持股比例", thChg:"较基准变化",
+    impTitle:"影响分析：谁受影响、如何影响", mapTitle:"条款关系图谱 — Pre-A 轮 SPA / SHA",
+    mapHint:"点击任意条款节点，查看通俗解读、权利人与义务人，以及与之关联的所有条款。",
+    detTitle:"条款详解", detEmpty:"← 请选择左侧条款节点",
+    ftSuite:"LexPilot 法律科技产品矩阵组件",
+    ftDemo:"演示数据集：虚构的“诺曜生物” Pre-A 轮融资。所有主体、数字与条款均为虚构。",
+    ftPrivacy:"全部解析与渲染均在您的浏览器本地完成，任何数据都不会被上传。",
+    rh:"权利人", ob:"义务人", rel:"关联条款",
+    baseT:"基准情形 — 按签署口径交割",
+    noTrigT:"未触发任何情景",
+    noTrigP:"签署时的股权结构保持不变。拨动左侧开关进行压力测试。",
+    dilutionNote:"交割时 5,000 万元新出资使全体老股东被稀释 14.3%：创始团队 60.0% → 51.4%。",
+    importOk:"已载入自定义数据集。", importBad:"文件无效：应为包含 holders 与 round 字段的 DealLens JSON。",
+    importNotJson:"检测到协议原文文件（Word/PDF）。DealLens 导入的是结构化 JSON 描述文件——请先通过提取 Skill 完成转换（或将协议发给 AI 助手并附带 DealLens 提取提示词），再导入生成的 .json 文件。协议原文不需要、也不应直接导入本应用。",
+    importParseErr:"文件不是合法的 JSON，请重新从提取 Skill 导出描述文件。",
+    impactOn:"对", gov:"公司治理", ipoL:"IPO / 合规", foundersL:"创始人利益",
+    tabMatrix:"权利义务矩阵", tabSandbox:"情景沙盘",
+    mxTitle:"权利义务影响矩阵", mxHint:"点击任意一行查看该条款的详细解读。",
+    mxDetTitle:"条款详解", mxDetEmpty:"← 请选择左侧条款行", thClause:"条款",
+    legendR:"权利 / 受益", legendO:"义务 / 受限", legendRO:"兼具",
+    mxEmpty:"本数据集未包含矩阵数据（条款×主体效果）。",
+    sbTitle:"情景沙盘", sbEmpty:"本数据集未配置预设情景。",
+    sbHint:"一键预设压力测试——每个情景会自动设置模拟器参数，并逐步展示后果链。",
+    sbView:"在模拟器中查看", sbChain:"后果链",
+    rvBarReviewed:"dealreview 审核覆盖：", rvMetaSrc:"审核来源",
+    rv_red:"红线", rv_major:"重大", rv_minor:"可协商", rv_ok:"市场惯例·放行",
+    rvTitle:"审核意见", rvIssue:"问题", rvFloor:"可接受底线", rvTrade:"建议交换条件",
+    tabCompare:"审查对比", cmpTitle:"DealReview 修改前 / 修改后 — 修订改变了什么",
+    cmpBefore:"修改前", cmpAfter:"修改后", cmpStatus:"状态", cmpChange:"变化说明",
+    cmpEmpty:"本数据集未包含审查后对比数据（postReview 字段）。用 DealReview 审查协议并把修订结果写回 JSON 后，修改前后的对比将在此呈现。",
+    stRedlined:"已修订 ✓", stPending:"待谈判", vwPre:"修改前", vwPost:"修改后",
+    prTitle:"修订结果", cmpGotoPre:"查看修改前热力图", cmpGotoPost:"查看修改后热力图"
+  }
+};
+const t = k => I18N[LANG][k] || k;
+
+/* ---------------- ownership math ---------------- */
+function baseOwnership(){
+  const post = DEAL.preMoney + DEAL.newMoney;           // 350
+  const keep = DEAL.preMoney / post;                    // 0.8571
+  return DEAL.holders.map(h => ({
+    ...h,
+    base: h.post!=null ? +h.post : (h.money ? h.money / post * 100 : h.pre * keep)
+  }));
+}
+
+function computeScenario(){
+  const rows = baseOwnership();
+  const by = id => rows.find(r => r.id === id);
+  let newInv = ["lead","follow"].map(by).filter(Boolean);
+  if (!newInv.length) newInv = rows.filter(r=>r.isNew);
+  if (!newInv.length) newInv = rows.filter(r=>r.money>0);
+  const newInvIds = newInv.map(r=>r.id);
+  const foundersRow = by("founders") || rows[0];
+  const newInvPct = newInv.reduce((s,r)=>s+r.base,0);   // 14.286
+  const out = { rows, deltas:{}, ratchet:null, redeem:null, anti:null };
+
+  // --- ratchet: founders transfer to new investors pro rata ---
+  if (els.chkRatchet.checked && newInv.length){
+    const a = +els.rngAchv.value;                        // achievement %
+    if (a < 100){
+      let pp = newInvPct * (1 - a/100);                  // percentage points
+      pp = Math.min(pp, foundersRow.base);
+      out.ratchet = { a, pp };
+      out.deltas[foundersRow.id] = (out.deltas[foundersRow.id]||0) - pp;
+      newInv.forEach(r => out.deltas[r.id] = (out.deltas[r.id]||0) + pp * r.base/newInvPct);
+    }
+  }
+  // --- anti-dilution: broad-based WA, next round issues 20% at price p% ---
+  if (els.chkAnti.checked && newInv.length){
+    const p = +els.rngPrice.value;                       // % of Pre-A price
+    if (p < 100){
+      const A=100, C=20, B=20*p/100;
+      const ratio=(A+B)/(A+C);                           // CP2/CP1
+      const pp = newInvPct * (1/ratio - 1);              // extra shares to new investors
+      out.anti = { p, pp };
+      // dilute everyone except new investors pro rata, then grant new investors
+      newInv.forEach(r => out.deltas[r.id]=(out.deltas[r.id]||0) + pp * r.base/newInvPct);
+      const others = rows.filter(r=>!newInvIds.includes(r.id));
+      const othersPct = others.reduce((s,r)=>s+r.base + (out.deltas[r.id]||0),0);
+      const shrink = othersPct/(othersPct+pp);
+      others.forEach(r => out.deltas[r.id]=(out.deltas[r.id]||0) + (r.base+(out.deltas[r.id]||0))*(shrink-1));
+    }
+  }
+  // --- redemption: cash claim, not an ownership change until exercised & paid ---
+  if (els.chkRedeem.checked){
+    const y = +els.rngYear.value;
+    const yrs = y - DEAL.redemption.closingYear;
+    const cost = DEAL.newMoney * (1 + DEAL.redemption.rate * yrs);
+    out.redeem = { y, yrs, cost, cash: DEAL.cashOnHand, short: cost > DEAL.cashOnHand };
+  }
+  rows.forEach(r => r.cur = r.base + (out.deltas[r.id]||0));
+  return out;
+}
+
+/* ---------------- rendering: simulator ---------------- */
+const $ = id => document.getElementById(id);
+const els = {};
+["chkRatchet","rngAchv","outAchv","chkRedeem","rngYear","outYear","chkAnti","rngPrice","outPrice",
+ "donut","ctBody","impacts","postMoney","dealSummary","scn-ratchet","scn-redemption","scn-anti",
+ "clauseMap","clauseDetail","fileInput"].forEach(id => els[id.replace(/-(\w)/g,(_,c)=>c.toUpperCase())] = $(id));
+
+const f1 = n => n.toFixed(1);
+const money = n => {
+  if (DEAL.normalized) return LANG==="en" ? `${f1(n)} units` : `${f1(n)} 单位`;
+  return LANG==="en" ? `RMB ${f1(n)}M` : (n>=100 ? `${f1(n/100)} 亿元` : `${Math.round(n*100)} 万元`);
+};
+
+function arcPath(cx,cy,r0,r1,a0,a1){
+  const p=(a,r)=>[cx+r*Math.cos(a-Math.PI/2), cy+r*Math.sin(a-Math.PI/2)];
+  const [x0,y0]=p(a0,r1),[x1,y1]=p(a1,r1),[x2,y2]=p(a1,r0),[x3,y3]=p(a0,r0);
+  const large = a1-a0>Math.PI ? 1:0;
+  return `M${x0} ${y0} A${r1} ${r1} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 ${large} 0 ${x3} ${y3} Z`;
+}
+
+function renderDonut(rows){
+  const GAP=0.012; let a=0; let s="";
+  rows.forEach(r=>{
+    const ang = r.cur/100*2*Math.PI;
+    if(ang<=0) return;
+    const a0=a+GAP, a1=Math.max(a0, a+ang-GAP);
+    s += `<path d="${arcPath(125,125,62,98,a0,a1)}" fill="${r.color}"><title>${r[LANG]} ${f1(r.cur)}%</title></path>`;
+    a += ang;
+  });
+  els.donut.innerHTML = s;
+}
+
+function renderTable(rows){
+  els.ctBody.innerHTML = rows.map(r=>{
+    const d = r.cur - r.base;
+    const cls = d>0.005?"up":(d<-0.005?"down":"zero");
+    const txt = Math.abs(d)<0.005 ? "—" : (d>0?"+":"−")+f1(Math.abs(d))+" pp";
+    return `<tr>
+      <td><span class="chip-dot" style="background:${r.color}"></span>${r[LANG]}</td>
+      <td class="pct">${f1(r.cur)}%</td>
+      <td class="delta ${cls}">${txt}</td>
+      <td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${r.cur}%;background:${r.color}"></div></div></td>
+    </tr>`;
+  }).join("");
+}
+
+function partyChips(list, type){
+  return list.map(x=>`<span class="pchip ${type}">${x}</span>`).join("");
+}
+
+function renderImpacts(scn){
+  const cards=[];
+  // base card
+  cards.push(`<div class="impact neutral"><h4>${t("baseT")}</h4><p>${t("dilutionNote")}</p></div>`);
+  const invNames = LANG==="en" ? ["Dawnrise Ventures","Voyager Capital"] : ["晨曦创投","远航资本"];
+  const founderName = LANG==="en" ? "Founding Team" : "创始团队";
+  const coName = DEAL.company[LANG];
+
+  if(scn.ratchet){
+    const {a,pp}=scn.ratchet;
+    const founders=scn.rows.find(r=>r.id==="founders") || scn.rows[0];
+    cards.push(`<div class="impact warn">
+      <h4>⚖ ${LANG==="en"?"Performance Ratchet triggered":"业绩对赌被触发"}</h4>
+      <p>${LANG==="en"
+        ?`FY2027 achievement <span class="num">${a}%</span> → Founders transfer <span class="num">${f1(pp)} pp</span> of equity to the new investors. Founders: 51.4% → <span class="num">${f1(founders.cur)}%</span>.`
+        :`2027 财年业绩完成率 <span class="num">${a}%</span> → 创始团队向新投资人转让 <span class="num">${f1(pp)} 个百分点</span>股权，持股 51.4% → <span class="num">${f1(founders.cur)}%</span>。`}</p>
+      <div class="party-row"><span class="tag">${t("rh")}</span>${partyChips(invNames,"rh")}</div>
+      <div class="party-row"><span class="tag">${t("ob")}</span>${partyChips([founderName+ (LANG==="en"?" (pays with own shares)":"（以自有股份补偿）")],"ob")}</div>
+      <ul class="plist">
+        <li>${t("gov")}: ${LANG==="en"?"investor stake rises → louder voice on reserved matters; board rebalance risk if dilution deepens.":"投资人持股上升 → 保留事项上话语权增强；若持续稀释可能引发董事会席位重议。"}</li>
+        <li>${t("ipoL")}: ${LANG==="en"?"ratchet arrangements must typically be terminated/cleaned before an A-share filing — track the clean-up obligation.":"A 股申报前通常需终止/清理对赌安排——注意清理义务的落地。"}</li>
+        <li>${t("foundersL")}: ${LANG==="en"?"direct personal dilution; negotiate a compensation cap or company-level buyback substitute.":"创始人个人直接稀释；建议谈判补偿上限或改为公司层面回购替代。"}</li>
+      </ul></div>`);
+  }
+
+  if(scn.redeem){
+    const r=scn.redeem;
+    const cashPct = Math.min(100, r.cash/(Math.max(r.cost,r.cash))*100);
+    const costPct = Math.min(100, r.cost/(Math.max(r.cost,r.cash))*100);
+    cards.push(`<div class="impact warn">
+      <h4>⚠ ${LANG==="en"?"Redemption Right exercised":"回购权被行使"}</h4>
+      <p>${LANG==="en"
+        ?`No Qualified IPO by ${DEAL.redemption.deadline}; exercised in <span class="num">${r.y}</span> → buyback cost = 50 × (1 + 8% × ${r.yrs} yrs) = <span class="num">${money(r.cost)}</span>, vs cash on hand ${money(r.cash)}.`
+        :`${DEAL.redemption.deadline} 前未完成合格上市；<span class="num">${r.y} 年</span>行使 → 回购成本 = 5,000 万 × (1 + 8% × ${r.yrs} 年) = <span class="num">${money(r.cost)}</span>，而公司账面现金 ${money(r.cash)}。`}</p>
+      <div class="cash-bar">
+        <div class="seg" style="width:${costPct}%;background:#C0392B">${LANG==="en"?"Buyback ":"回购 "}${money(r.cost)}</div>
+        <div class="seg" style="width:${cashPct}%;background:#8A857E">${LANG==="en"?"Cash ":"现金 "}${money(r.cash)}</div>
+      </div>
+      <div class="legend-inline">${r.short ? (LANG==="en"?"⚠ Buyback obligation exceeds available cash — default risk.":"⚠ 回购义务超出现金储备——存在违约风险。") : (LANG==="en"?"Cash covers the obligation, but R&D runway is burned.":"现金可覆盖，但研发投入将被严重挤占。")}</div>
+      <div class="party-row"><span class="tag">${t("rh")}</span>${partyChips(invNames,"rh")}</div>
+      <div class="party-row"><span class="tag">${t("ob")}</span>${partyChips([coName+(LANG==="en"?" (primary debtor)":"（主债务人）"), founderName+(LANG==="en"?" (joint & several)":"（连带责任）")],"ob")}</div>
+      <ul class="plist">
+        <li>${t("gov")}: ${LANG==="en"?"equity claim converts to a debt-like claim — creditors' priority reshapes all subsequent decisions.":"股权主张转化为类债权主张——偿债优先级重塑后续一切决策。"}</li>
+        <li>${t("ipoL")}: ${LANG==="en"?"going-concern doubt is a hard IPO blocker; outstanding redemption must be resolved before filing.":"持续经营疑虑是上市的硬伤；未决回购义务必须在申报前解决。"}</li>
+        <li>${t("foundersL")}: ${LANG==="en"?"joint liability reaches personal assets — the single most dangerous clause for founders.":"连带责任穿透至个人资产——对创始人最危险的条款，没有之一。"}</li>
+      </ul></div>`);
+  }
+
+  if(scn.anti){
+    const {p,pp}=scn.anti;
+    cards.push(`<div class="impact">
+      <h4>↘ ${LANG==="en"?"Anti-dilution adjustment":"反稀释调整"}</h4>
+      <p>${LANG==="en"
+        ?`Next round at <span class="num">${p}%</span> of Pre-A price → investors receive <span class="num">${f1(pp)} pp</span> in extra shares; all other holders shrink pro rata.`
+        :`下一轮以 Pre-A 价格的 <span class="num">${p}%</span> 发行 → 投资人获得 <span class="num">${f1(pp)} 个百分点</span>补偿股份；其余股东按比例缩水。`}</p>
+      <div class="party-row"><span class="tag">${t("rh")}</span>${partyChips(invNames,"rh")}</div>
+      <div class="party-row"><span class="tag">${t("ob")}</span>${partyChips([LANG==="en"?"All existing holders (diluted)":"全体老股东（被摊薄）"],"ob")}</div>
+      <ul class="plist">
+        <li>${t("foundersL")}: ${LANG==="en"?"broad-based WA is the moderate form — resist full-ratchet at all costs.":"广义加权平均已是温和形式——务必拒绝完全棘轮（full ratchet）。"}</li>
+        <li>${t("ipoL")}: ${LANG==="en"?"adjustment history must be disclosed & settled in the listing review.":"调整历史在上市审核中需披露并了结。"}</li>
+      </ul></div>`);
+  }
+
+  if(!scn.ratchet && !scn.redeem && !scn.anti){
+    cards.push(`<div class="impact neutral"><h4>${t("noTrigT")}</h4><p>${t("noTrigP")}</p></div>`);
+  }
+  els.impacts.innerHTML = cards.join("");
+}
+
+function renderSim(){
+  const scn = computeScenario();
+  renderDonut(scn.rows);
+  renderTable(scn.rows);
+  renderImpacts(scn);
+  els.postMoney.textContent = money(DEAL.preMoney + DEAL.newMoney);
+  els.dealSummary.textContent = DEAL.normalized
+    ? (LANG==="en"
+      ? `${DEAL.company.en} · ${DEAL.roundName.en}: amounts normalized for confidentiality (pre-money = 100 units); ownership ratios identical to the executed agreements. All parties anonymized.`
+      : `${DEAL.company.zh} · ${DEAL.roundName.zh}：金额已归一化脱敏（最终投前估值 = 100 单位），股权比例与已签署协议完全一致；所有当事人均已匿名化。`)
+    : (LANG==="en"
+    ? `${DEAL.company.en} ${DEAL.roundName.en}: pre-money ${money(DEAL.preMoney)} + new money ${money(DEAL.newMoney)} → post-money ${money(DEAL.preMoney+DEAL.newMoney)}.${DEAL.isDemo?" Demo data; all parties fictitious.":""}`
+    : `${DEAL.company.zh} ${DEAL.roundName.zh}：投前估值 ${money(DEAL.preMoney)} + 新增出资 ${money(DEAL.newMoney)} → 投后估值 ${money(DEAL.preMoney+DEAL.newMoney)}。${DEAL.isDemo?"演示数据，所有主体均为虚构。":""}`);
+  els.scnRatchet.classList.toggle("on", els.chkRatchet.checked);
+  els.scnRedemption.classList.toggle("on", els.chkRedeem.checked);
+  els.scnAnti.classList.toggle("on", els.chkAnti.checked);
+  els.outAchv.textContent = els.rngAchv.value+"%";
+  els.outYear.textContent = els.rngYear.value;
+  els.outPrice.textContent = els.rngPrice.value+"%";
+}
+</script>
+<script>
+/* ---------------- rendering: clause map ---------------- */
+let selectedClause = null;
+const NW=190, NH=56;
+
+/* before/after view state (postReview) */
+let VIEW = "pre";
+const prEntry = id => (DEAL.postReview && DEAL.postReview.clauses && DEAL.postReview.clauses[id]) || null;
+function effReview(c){
+  const pr = prEntry(c.id);
+  if(VIEW==="post" && pr && pr.level) return {...(c.review||{}), level: pr.level};
+  return c.review;
+}
+function refreshReviewViews(){ renderMap(); renderDetail(); renderMatrix(); renderMxDetail(); }
+
+function nodeCenter(c){ return { x:c.x+NW/2, y:c.y+NH/2 }; }
+
+function renderMap(){
+  const byId = id => CLAUSES.find(c=>c.id===id);
+  let s = `<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0L10 5L0 10z" fill="#CBBFAE"></path></marker>
+    <marker id="arrHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0L10 5L0 10z" fill="#E8713A"></path></marker></defs>`;
+
+  EDGES.forEach(e=>{
+    const a=nodeCenter(byId(e.f)), b=nodeCenter(byId(e.t));
+    const hot = selectedClause && (e.f===selectedClause || e.t===selectedClause);
+    const dim = selectedClause && !hot;
+    let d, lx, ly;
+    if(Math.abs(a.x-b.x)<10){ d=`M${a.x} ${a.y+NH/2-2} L${b.x} ${b.y-NH/2+2}`; lx=a.x+8; ly=(a.y+b.y)/2; }
+    else{
+      const sx=a.x+NW/2-2, tx=b.x-NW/2+2, dx=Math.max(30,(tx-sx)*0.4);
+      d=`M${sx} ${a.y} C${sx+dx} ${a.y}, ${tx-dx} ${b.y}, ${tx} ${b.y}`;
+      lx=(sx+tx)/2; ly=(a.y+b.y)/2-8;
+    }
+    s+=`<path class="edge ${hot?"hot":""} ${dim?"dim":""}" d="${d}" marker-end="url(#${hot?"arrHot":"arr"})"></path>`;
+    s+=`<text class="edge-label ${hot?"hot":""} ${dim?"dim":""}" x="${lx}" y="${ly}" text-anchor="middle">${e[LANG]}</text>`;
+  });
+
+  CLAUSES.forEach(c=>{
+    const sel = selectedClause===c.id;
+    const dim = selectedClause && !sel && !c.related.includes(selectedClause)
+                && !(byId(selectedClause)||{related:[]}).related.includes(c.id);
+    const name = c[LANG]; const fs = name.length>24 ? 11 : 12.5;
+    const fill = c.anchor ? "#6B4A2F" : "#fff";
+    const tcol = c.anchor ? "#fff" : "var(--ink)";
+    const scol = c.anchor ? "#EAD9C6" : "var(--muted)";
+    const erv = effReview(c);
+    const rvc = erv && RV[erv.level];
+    const prc = prEntry(c.id);
+    const improved = VIEW==="post" && prc && prc.status==="redlined" && prc.level && c.review && prc.level!==c.review.level;
+    const rectStyle = c.anchor
+      ? `fill:${fill};stroke:${rvc||fill};stroke-width:${rvc?2.6:1.4}`
+      : (rvc ? `stroke:${rvc};stroke-width:2.4` : "");
+    s+=`<g class="node-box ${sel?"sel":""} ${dim?"dim":""}" data-id="${c.id}" transform="translate(${c.x},${c.y})">
+      <rect width="${NW}" height="${NH}" rx="10" style="${rectStyle}"></rect>
+      ${rvc?`<circle cx="${NW-11}" cy="11" r="5.5" fill="${rvc}"><title>${t("rv_"+erv.level)}</title></circle>`:""}
+      ${improved?`<text x="${NW-27}" y="16" style="font-size:12px;font-weight:800;fill:#3E7C4F">✓</text>`:""}
+      <text x="${NW/2}" y="23" text-anchor="middle" style="font-size:${fs}px;${c.anchor?`fill:${tcol}`:""}">${name}</text>
+      <text class="sub" x="${NW/2}" y="41" text-anchor="middle" style="${c.anchor?`fill:${scol}`:""}">${c.tag[LANG]}</text>
+    </g>`;
+  });
+  els.clauseMap.innerHTML = s;
+  els.clauseMap.querySelectorAll(".node-box").forEach(g=>{
+    g.addEventListener("click",()=>selectClause(g.dataset.id));
+  });
+  renderRvBar();
+}
+
+/* risk summary bar above the clause map */
+function renderRvBar(){
+  const bar = $("rvBar"); if(!bar) return;
+  const counts = { red:0, major:0, minor:0, ok:0 };
+  CLAUSES.forEach(c=>{ const r=effReview(c); if(r && counts[r.level]!=null) counts[r.level]++; });
+  const total = counts.red+counts.major+counts.minor+counts.ok;
+  const vt = $("viewToggle");
+  if(vt){
+    vt.classList.toggle("hidden", !DEAL.postReview || !total);
+    vt.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.v===VIEW));
+  }
+  if(!total){ bar.classList.add("hidden"); bar.innerHTML=""; return; }
+  bar.classList.remove("hidden");
+  const chips = ["red","major","minor","ok"].filter(l=>counts[l]).map(l=>
+    `<span class="rv-chip"><span class="rv-dot" style="background:${RV[l]}"></span>${t("rv_"+l)} × ${counts[l]}</span>`).join("");
+  const meta = DEAL.reviewMeta
+    ? `<span style="margin-left:auto">${t("rvMetaSrc")}: ${DEAL.reviewMeta.tool||""}${DEAL.reviewMeta.date?(" · "+DEAL.reviewMeta.date):""}</span>` : "";
+  bar.innerHTML = `<span style="font-weight:800;color:var(--brown)">${t("rvBarReviewed")}</span>${chips}${meta}`;
+}
+
+function selectClause(id){
+  selectedClause = (selectedClause===id) ? null : id;
+  renderMap(); renderDetail();
+}
+
+function detailHTML(id){
+  const c = CLAUSES.find(x=>x.id===id);
+  const rv = c.review;
+  const rvCard = rv ? `
+    <div class="rv-card rv-${rv.level}">
+      <h5>${t("rvTitle")} · ${t("rv_"+rv.level)}${rv.card?` · ${rv.card}`:""}</h5>
+      <p><span class="lbl">${t("rvIssue")}：</span>${rv.issue[LANG]}</p>
+      <p><span class="lbl">${t("rvFloor")}：</span>${rv.floor[LANG]}</p>
+      <p><span class="lbl">${t("rvTrade")}：</span>${rv.trade[LANG]}</p>
+    </div>` : "";
+  const pr = prEntry(id);
+  const prCard = (VIEW==="post" && pr) ? `
+    <div class="rv-card ${pr.status==="redlined"?"rv-ok":"rv-minor"}">
+      <h5>${t("prTitle")} · ${pr.status==="redlined"?t("stRedlined"):t("stPending")}${pr.level?` · ${t("rv_"+pr.level)}`:""}</h5>
+      <p>${pr.change[LANG]}</p>
+    </div>` : "";
+  return `
+    <h4 style="font-size:16px;margin-bottom:6px">${c[LANG]}</h4>
+    <span class="tag">${c.tag[LANG]}</span>
+    <p style="font-size:13px;margin:12px 0">${c.plain[LANG]}</p>
+    <div class="party-row"><span class="tag">${t("rh")}</span>${partyChips(c.rh[LANG],"rh")}</div>
+    <div class="party-row"><span class="tag">${t("ob")}</span>${partyChips(c.ob[LANG],"ob")}</div>
+    <div style="margin-top:12px"><span class="tag">${t("rel")}</span><div style="margin-top:6px">${
+      c.related.map(r=>{const rc=CLAUSES.find(x=>x.id===r);
+        return `<span class="rel-link" data-r="${r}">${rc[LANG]}</span>`;}).join("")
+    }</div></div>${rvCard}${prCard}`;
+}
+function bindRelLinks(box, fn){
+  box.querySelectorAll(".rel-link").forEach(el=>
+    el.addEventListener("click",()=>fn(el.dataset.r)));
+}
+
+function renderDetail(){
+  if(!selectedClause){
+    els.clauseDetail.innerHTML = `<div class="detail-empty">${t("detEmpty")}</div>`;
+    return;
+  }
+  els.clauseDetail.innerHTML = detailHTML(selectedClause);
+  bindRelLinks(els.clauseDetail, selectClause);
+}
+
+/* ---------------- i18n apply / tabs / import / events ---------------- */
+function applyLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));
+  Object.keys(I18N[LANG]).forEach(k=>{ const el=$(k); if(el) el.textContent=t(k); });
+  document.documentElement.lang = LANG==="en"?"en":"zh";
+  renderSim(); renderMap(); renderDetail();
+  renderMatrix(); renderMxDetail(); renderSandbox(); renderCompare();
+}
+
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  btn.classList.add("active");
+  $("panel-"+btn.dataset.tab).classList.add("active");
+}));
+
+$("langBtn").addEventListener("click",()=>{ LANG = LANG==="en"?"zh":"en"; applyLang(); });
+
+$("viewToggle").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+  VIEW = b.dataset.v; refreshReviewViews();
+}));
+
+["chkRatchet","chkRedeem","chkAnti"].forEach(id=>$(id).addEventListener("change",renderSim));
+els.rngAchv.addEventListener("input",()=>{ if(+els.rngAchv.value<100) els.chkRatchet.checked=true; renderSim(); });
+els.rngPrice.addEventListener("input",()=>{ if(+els.rngPrice.value<100) els.chkAnti.checked=true; renderSim(); });
+els.rngYear.addEventListener("input",()=>{ els.chkRedeem.checked=true; renderSim(); });
+
+els.fileInput.addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  if(!/\.json$/i.test(f.name)){ alert(t("importNotJson")); e.target.value=""; return; }
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let j;
+    try{ j=JSON.parse(rd.result); }catch(_){ alert(t("importParseErr")); return; }
+    try{
+      if(!Array.isArray(j.holders)||!j.round||j.round.preMoney==null||j.round.newMoney==null) throw 0;
+      const pal=["#6B4A2F","#D9CFC4","#F2B33D","#C9A15A","#E8713A","#B8551F","#8A857E"];
+      DEAL.company=j.company||DEAL.company;
+      DEAL.roundName=j.roundName||DEAL.roundName;
+      DEAL.preMoney=+j.round.preMoney; DEAL.newMoney=+j.round.newMoney;
+      DEAL.cashOnHand=j.cashOnHand!=null?+j.cashOnHand:DEAL.cashOnHand;
+      DEAL.normalized=!!j.normalized;
+      DEAL.isDemo=false;
+      if(j.redemption) DEAL.redemption={ rate:+(j.redemption.rate??0.08),
+        closingYear:+(j.redemption.closingYear??2026), deadline:j.redemption.deadline||DEAL.redemption.deadline };
+      DEAL.holders=j.holders.map((h,i)=>({ id:h.id||("h"+i), en:h.en||h.name||("Holder "+(i+1)),
+        zh:h.zh||h.en||h.name||("股东 "+(i+1)), pre:+h.pre||0, money:h.money?+h.money:undefined,
+        post:h.post!=null?+h.post:undefined, isNew:!!h.isNew,
+        color:h.color||pal[i%pal.length] }));
+      const scn=j.scenarios||{};
+      const vis=(el,on,chk)=>{ el.style.display = on===false?"none":""; if(on===false) chk.checked=false; };
+      vis(els.scnRatchet, scn.ratchet, els.chkRatchet);
+      vis(els.scnRedemption, scn.redemption, els.chkRedeem);
+      vis(els.scnAnti, scn.antiDilution, els.chkAnti);
+      if(Array.isArray(j.clauses)&&j.clauses.length) CLAUSES=j.clauses;
+      if(Array.isArray(j.edges)&&j.edges.length) EDGES=j.edges;
+      DEAL.parties = Array.isArray(j.parties)?j.parties:[];
+      DEAL.effects = j.effects||{};
+      DEAL.presets = Array.isArray(j.presets)?j.presets:[];
+      DEAL.reviewMeta = j.reviewMeta||null;
+      DEAL.postReview = j.postReview||null; VIEW="pre";
+      selectedClause=null; selectedMx=null; activePreset=null;
+      renderMap(); renderDetail(); renderMatrix(); renderMxDetail(); renderSandbox(); renderCompare();
+      alert(t("importOk")); renderSim();
+    }catch(_){ alert(t("importBad")); } };
+  rd.readAsText(f);
+  e.target.value="";
+});
+
+/* ---------------- impact matrix (v1.0) ---------------- */
+let selectedMx = null;
+function renderMatrix(){
+  const head = $("mxHead"), body = $("mxBody");
+  const parties = DEAL.parties || [];
+  const fx = DEAL.effects || {};
+  if(!parties.length || !CLAUSES.some(c=>fx[c.id])){
+    head.innerHTML="";
+    body.innerHTML=`<tr><td style="padding:34px;text-align:center;color:var(--muted)">${t("mxEmpty")}</td></tr>`;
+    return;
+  }
+  head.innerHTML = `<tr><th>${t("thClause")}</th>${parties.map(p=>`<th>${p[LANG]}</th>`).join("")}</tr>`;
+  body.innerHTML = CLAUSES.filter(c=>!c.anchor).map(c=>{
+    const cells = parties.map(p=>{
+      const e = fx[c.id] && fx[c.id][p.id];
+      if(!e) return `<td><span class="sym none">·</span></td>`;
+      const sym = e.t==="R"?"+":(e.t==="O"?"−":"±");
+      return `<td title="${e[LANG]}"><span class="sym ${e.t}">${sym}</span></td>`;
+    }).join("");
+    const erv = effReview(c);
+    const rvd = erv ? `<span class="mx-rv" style="background:${RV[erv.level]}" title="${t("rv_"+erv.level)}"></span>` : "";
+    return `<tr class="mxrow ${selectedMx===c.id?"sel":""}" data-id="${c.id}"><td>${c[LANG]}${rvd}</td>${cells}</tr>`;
+  }).join("");
+  const lg = $("mxRvLegend");
+  if(lg){
+    const has = CLAUSES.some(c=>c.review);
+    lg.innerHTML = has ? ["red","major","minor","ok"].map(l=>
+      `<span class="rv-chip" style="font-weight:600"><span class="rv-dot" style="background:${RV[l]}"></span>${t("rv_"+l)}</span>`).join("") : "";
+  }
+  body.querySelectorAll(".mxrow").forEach(r=>r.addEventListener("click",()=>{
+    selectedMx = selectedMx===r.dataset.id ? null : r.dataset.id;
+    renderMatrix(); renderMxDetail();
+  }));
+}
+function renderMxDetail(){
+  const box = $("mxDetail");
+  if(!selectedMx){ box.innerHTML = `<div class="detail-empty">${t("mxDetEmpty")}</div>`; return; }
+  box.innerHTML = detailHTML(selectedMx);
+  bindRelLinks(box, id=>{ selectedMx=id; renderMatrix(); renderMxDetail(); });
+}
+
+/* ---------------- scenario sandbox (v1.0) ---------------- */
+let activePreset = null;
+const PRESET_CTRLS = { chkRatchet:["chkRatchet","rngAchv"], chkRedeem:["chkRedeem","rngYear"], chkAnti:["chkAnti","rngPrice"] };
+function renderSandbox(){
+  const grid = $("presetGrid");
+  const presets = DEAL.presets || [];
+  if(!presets.length){ grid.innerHTML=`<div class="note">${t("sbEmpty")}</div>`; $("chainBox").innerHTML=""; return; }
+  grid.innerHTML = presets.map(p=>`
+    <button class="preset ${activePreset===p.id?"active":""}" data-id="${p.id}">
+      <div class="ic">${p.icon||"▶"}</div><h4>${p.title[LANG]}</h4><p>${p.desc[LANG]}</p>
+    </button>`).join("");
+  grid.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.id)));
+  renderChain();
+}
+function applyPreset(id){
+  const p = (DEAL.presets||[]).find(x=>x.id===id); if(!p) return;
+  activePreset = (activePreset===id) ? null : id;
+  Object.keys(PRESET_CTRLS).forEach(key=>{
+    const [chk,rng] = PRESET_CTRLS[key];
+    $(chk).checked = (activePreset && p[key]!=null);
+    if(activePreset && p[key]!=null) $(rng).value = p[key];
+  });
+  renderSim(); renderSandbox();
+}
+function renderChain(){
+  const box = $("chainBox");
+  const p = (DEAL.presets||[]).find(x=>x.id===activePreset);
+  if(!p){ box.innerHTML=""; return; }
+  box.innerHTML = `<h4 style="margin:6px 0 12px;font-size:14px;color:var(--brown)">${t("sbChain")} — ${p.title[LANG]}</h4>
+    <div class="chain">${p.chain.map(s=>`<div class="chain-step"><div>${s[LANG]}</div></div>`).join("")}</div>
+    <button class="btn btn-primary" id="gotoSim" style="margin-top:6px">${t("sbView")} →</button>`;
+  $("gotoSim").addEventListener("click",()=>document.querySelector('[data-tab="sim"]').click());
+}
+
+/* ---------------- review compare (postReview before/after) ---------------- */
+function lvlPill(l){ return l ? `<span class="lvl-pill"><span class="rv-dot" style="background:${RV[l]}"></span>${t("rv_"+l)}</span>` : "—"; }
+function renderCompare(){
+  const body = $("cmpBody"); if(!body) return;
+  const pr = DEAL.postReview;
+  if(!pr){ body.innerHTML = `<div class="detail-empty">${t("cmpEmpty")}</div>`; return; }
+  const L4 = ["red","major","minor","ok"];
+  const before = {red:0,major:0,minor:0,ok:0}, after = {red:0,major:0,minor:0,ok:0};
+  CLAUSES.forEach(c=>{ if(c.review && before[c.review.level]!=null) before[c.review.level]++; });
+  CLAUSES.forEach(c=>{ const p=prEntry(c.id); const l=(p&&p.level)||(c.review&&c.review.level);
+    if(l && after[l]!=null) after[l]++; });
+  const bar = o => {
+    const tt = L4.reduce((s,l)=>s+o[l],0)||1;
+    return `<div class="cmp-bar">${L4.filter(l=>o[l]).map(l=>
+      `<div class="seg" style="width:${o[l]/tt*100}%;background:${RV[l]}">${o[l]}</div>`).join("")}</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">${L4.filter(l=>o[l]).map(l=>
+      `<span class="rv-chip" style="font-size:11.5px"><span class="rv-dot" style="background:${RV[l]}"></span>${t("rv_"+l)} × ${o[l]}</span>`).join("")}</div>`;
+  };
+  const net = L4.map(l=>`${t("rv_"+l)} ${before[l]} → ${after[l]}`).join(" · ");
+  const entries = Object.keys(pr.clauses||{})
+    .filter(id=>CLAUSES.some(c=>c.id===id))
+    .map(id=>({ id, ...pr.clauses[id] }))
+    .sort((a,b)=> a.status===b.status ? 0 : (a.status==="redlined" ? -1 : 1));
+  const rows = entries.map(e=>{
+    const c = CLAUSES.find(x=>x.id===e.id);
+    const bl = c.review && c.review.level;
+    const al = e.level || bl;
+    const st = e.status==="redlined"
+      ? `<span class="st-chip st-redlined">${t("stRedlined")}</span>`
+      : `<span class="st-chip st-pending">${t("stPending")}</span>`;
+    return `<tr><td style="font-weight:700">${c[LANG]}</td>
+      <td>${lvlPill(bl)}</td><td style="font-weight:800;color:var(--orange)">→</td>
+      <td>${lvlPill(al)}</td><td>${st}</td>
+      <td style="color:var(--muted);font-size:12.5px">${e.change[LANG]}</td></tr>`;
+  }).join("");
+  body.innerHTML = `
+    <div class="note" style="margin:0 0 16px">${pr.basis[LANG]}${pr.date?(" · "+pr.date):""}${pr.tool?(" · "+pr.tool):""}</div>
+    <div class="cmp-counts">
+      <div class="cmp-col"><div class="lab">${t("cmpBefore")}</div>${bar(before)}</div>
+      <div class="cmp-arrow">→</div>
+      <div class="cmp-col"><div class="lab">${t("cmpAfter")}</div>${bar(after)}</div>
+    </div>
+    <div class="note" style="margin:0 0 18px;font-weight:700;color:var(--brown)">${net}</div>
+    <table class="cmp"><thead><tr>
+      <th>${t("thClause")}</th><th>${t("cmpBefore")}</th><th></th><th>${t("cmpAfter")}</th><th>${t("cmpStatus")}</th><th>${t("cmpChange")}</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <div style="margin-top:18px">
+      <button class="btn" id="cmpGotoPre">${t("cmpGotoPre")}</button>
+      <button class="btn btn-primary" id="cmpGotoPost" style="margin-left:8px">${t("cmpGotoPost")}</button>
+    </div>`;
+  $("cmpGotoPre").addEventListener("click",()=>{ VIEW="pre"; refreshReviewViews(); document.querySelector('[data-tab="map"]').click(); });
+  $("cmpGotoPost").addEventListener("click",()=>{ VIEW="post"; refreshReviewViews(); document.querySelector('[data-tab="map"]').click(); });
+}
+
+/* ---------------- init ---------------- */
+applyLang();
+</script>
+</body>
+</html>

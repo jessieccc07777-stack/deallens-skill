@@ -1,0 +1,15 @@
+{
+  "_comment": "DealLens 描述文件示例（虚构数据）。真实使用中由提取 Skill 生成：协议原文 → 本地脱敏 → AI 提取 → 本地回填 → 本文件。",
+  "company": { "en": "HelixGen Pharma", "zh": "螺旋基因药业（虚构）" },
+  "roundName": { "en": "Series A", "zh": "A 轮" },
+  "round": { "preMoney": 500, "newMoney": 80 },
+  "cashOnHand": 120,
+  "holders": [
+    { "id": "founders", "en": "Founding Team", "zh": "创始团队", "pre": 55 },
+    { "id": "esop", "en": "ESOP Platform", "zh": "员工持股平台", "pre": 12 },
+    { "id": "angel", "en": "Seedstone Angel", "zh": "基石天使基金", "pre": 18 },
+    { "id": "prea", "en": "Kite Ventures (Pre-A)", "zh": "风筝创投（Pre-A）", "pre": 15 },
+    { "id": "lead", "en": "Meridian Capital (Lead)", "zh": "子午线资本（领投）", "money": 50 },
+    { "id": "follow", "en": "Harbourview Fund", "zh": "港湾基金", "money": 30 }
+  ]
+}
